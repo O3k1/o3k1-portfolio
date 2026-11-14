@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   ArrowUpRight,
   Terminal,
@@ -54,30 +54,36 @@ export function App() {
   const [copiedEmail, setCopiedEmail] = useState(false);
   const [archivedToDisk, setArchivedToDisk] = useState(false);
 
-  // Sync URL query params without triggering page reload
-  useEffect(() => {
+  const syncQueryParam = (key: string, value: string | null) => {
     const params = new URLSearchParams(window.location.search);
-    if (activeCategory === 'ALL') {
-      params.delete('category');
+    if (value) {
+      params.set(key, value);
     } else {
-      params.set('category', activeCategory.toLowerCase());
-    }
-    if (expandedProject) {
-      params.set('schematic', expandedProject);
-    } else {
-      params.delete('schematic');
-    }
-    if (activeDossierId) {
-      params.set('dossier', activeDossierId);
-    } else {
-      params.delete('dossier');
+      params.delete(key);
     }
     const queryString = params.toString();
     const nextUrl = queryString
       ? `${window.location.pathname}?${queryString}${window.location.hash}`
       : `${window.location.pathname}${window.location.hash}`;
     window.history.replaceState(null, '', nextUrl);
-  }, [activeCategory, expandedProject, activeDossierId]);
+  };
+
+  const handleSelectCategory = (category: CategoryFilter) => {
+    setActiveCategory(category);
+    syncQueryParam('category', category === 'ALL' ? null : category.toLowerCase());
+  };
+
+  const handleToggleSchematic = (projectId: string) => {
+    const nextProject = expandedProject === projectId ? null : projectId;
+    setExpandedProject(nextProject);
+    syncQueryParam('schematic', nextProject);
+  };
+
+  const handleToggleDossier = (entryId: string) => {
+    const nextDossier = activeDossierId === entryId ? null : entryId;
+    setActiveDossierId(nextDossier);
+    syncQueryParam('dossier', nextDossier);
+  };
 
   const filteredProjects =
     activeCategory === 'ALL'
@@ -411,7 +417,7 @@ export function App() {
                           role="tab"
                           type="button"
                           aria-selected={isSelected}
-                          onClick={() => setActiveCategory(category)}
+                          onClick={() => handleSelectCategory(category)}
                           className={`border border-ink px-3 py-1 text-xs font-mono uppercase tracking-wider transition-colors ${
                             isSelected
                               ? 'bg-ink text-paper'
@@ -538,9 +544,7 @@ export function App() {
                           <div className="space-y-2">
                             <button
                               type="button"
-                              onClick={() =>
-                                setExpandedProject(isSchematicOpen ? null : project.id)
-                              }
+                              onClick={() => handleToggleSchematic(project.id)}
                               aria-expanded={isSchematicOpen}
                               className="w-full flex items-center justify-between border border-ink bg-paper hover:bg-paper-warm px-3 py-2 text-xs font-mono text-ink transition-colors"
                             >
@@ -770,7 +774,7 @@ export function App() {
 
                             <button
                               type="button"
-                              onClick={() => setActiveDossierId(isExpanded ? null : entry.id)}
+                              onClick={() => handleToggleDossier(entry.id)}
                               className="font-mono text-xs text-ink underline underline-offset-4 hover:text-pencil transition-colors"
                             >
                               {isExpanded ? 'COLLAPSE NOTE [-]' : 'READ NOTE [+]'}
